@@ -6,6 +6,10 @@ data Citizen = Gold { age :: Int } | Silver { age :: Int } | Iron { age :: Int, 
 data State = State { citizens :: [Citizen], time :: Int } deriving Show
 data StartingConfiguration = StartingConfiguration {startingSize :: Int, goldPercent :: Double, silverPercent :: Double, ironPercent :: Double, ironProfessionDistribution :: Map.Map Profession Double }
 
+unwrap :: Maybe a -> a
+unwrap (Just a) = a
+unwrap Nothing = error "Unwrapping none value"
+
 allProfessions :: [Profession]
 allProfessions = [minBound .. maxBound]
 
@@ -29,10 +33,6 @@ generateGoldCitizens startingConfiguration = generateCitizens startingConfigurat
 generateSilverCitizens :: StartingConfiguration -> [Citizen]
 generateSilverCitizens startingConfiguration = generateCitizens startingConfiguration (silverPercent startingConfiguration) (const Silver { age = 0})
 
-unwrap :: Maybe a -> a
-unwrap (Just a) = a
-unwrap Nothing = error "Unwrapping none value"
-
 generateIronCitizens :: StartingConfiguration -> [Citizen]
 generateIronCitizens startingConfiguration = concatMap (generateIronCitizensWithProfession startingConfiguration) (generateProfessionDistribution startingConfiguration)
 
@@ -41,5 +41,10 @@ generateProfessionDistribution startingConfiguration = map (\profession -> (prof
 
 generateIronCitizensWithProfession :: StartingConfiguration -> (Profession, Double) -> [Citizen]
 generateIronCitizensWithProfession startingConfiguration (profession, percent) = generateCitizens startingConfiguration (ironPercent startingConfiguration * percent) (const Iron {age = 0, profession = profession})
+
+advance :: State -> State
+advance state = State { citizens = map
+    (\citizen -> citizen { age = age citizen + 1 })
+    (citizens state), time = time state + 1}
 
 main = putStrLn "Hello World"
