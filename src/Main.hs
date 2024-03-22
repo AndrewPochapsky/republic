@@ -1,10 +1,9 @@
+--import Structs (StartingConfiguration(StartingConfiguration), Profession)
+module Main where
+
 import System.IO
 import qualified Data.Map as Map
-
-data Profession = Farmer | Baker | Miner | Blacksmith deriving (Show, Ord, Eq, Bounded, Enum)
-data Citizen = Gold { age :: Int } | Silver { age :: Int } | Iron { age :: Int, profession :: Profession } deriving Show
-data State = State { citizens :: [Citizen], time :: Int } deriving Show
-data StartingConfiguration = StartingConfiguration {startingSize :: Int, goldPercent :: Double, silverPercent :: Double, ironPercent :: Double, ironProfessionDistribution :: Map.Map Profession Double }
+import Structs
 
 allProfessions :: [Profession]
 allProfessions = [minBound .. maxBound]
@@ -14,7 +13,7 @@ myStartingConfiguration :: StartingConfiguration = StartingConfiguration {
     goldPercent = 0.1,
     silverPercent = 0.2,
     ironPercent = 0.7,
-    ironProfessionDistribution = Map.fromList [(Farmer, 0.3), (Baker, 0.2), (Miner, 0.3), (Blacksmith, 0.2)] }
+    ironProfessionDistribution = ProfessionDistribution (Map.fromList [(Farmer, 0.3), (Baker, 0.2), (Miner, 0.3), (Blacksmith, 0.2)]) }
 startingState :: State = generateStartingState myStartingConfiguration
 
 generateStartingState :: StartingConfiguration -> State
@@ -30,7 +29,7 @@ generateSilverCitizens :: StartingConfiguration -> [Citizen]
 generateSilverCitizens startingConfiguration = generateCitizens startingConfiguration (silverPercent startingConfiguration) (const Silver { age = 0})
 
 generateIronCitizens :: StartingConfiguration -> [Citizen]
-generateIronCitizens startingConfiguration = concatMap (generateIronCitizensWithProfession startingConfiguration) (Map.toList (ironProfessionDistribution startingConfiguration))
+generateIronCitizens startingConfiguration = concatMap (generateIronCitizensWithProfession startingConfiguration) (Map.toList (getMap $ ironProfessionDistribution startingConfiguration))
 
 generateIronCitizensWithProfession :: StartingConfiguration -> (Profession, Double) -> [Citizen]
 generateIronCitizensWithProfession startingConfiguration (profession, percent) = generateCitizens startingConfiguration (ironPercent startingConfiguration * percent) (const Iron {age = 0, profession = profession})
