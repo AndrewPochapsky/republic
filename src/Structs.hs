@@ -1,14 +1,13 @@
---module Structs (Profession, Citizen, State, ProfessionDistribution, StartingConfiguration(StartingConfiguration), startingSize, goldPercent) where
-module Structs (module Structs) where
-
-import qualified Data.Map as Map
+module Structs
+    ( module Structs
+    ) where
 
 data Profession
   = Farmer
   | Baker
   | Miner
   | Blacksmith
-  deriving (Bounded, Enum, Eq, Ord, Show)
+  deriving (Enum, Eq, Ord, Show)
 
 data Citizen
   = Gold
@@ -29,15 +28,3 @@ data State
       , time     :: Int
       }
   deriving (Show)
-
-newtype ProfessionDistribution
-  = ProfessionDistribution { getMap :: Map.Map Profession Double }
-
-data StartingConfiguration
-  = StartingConfiguration
-      { startingSize               :: Int
-      , goldPercent                :: Double
-      , silverPercent              :: Double
-      , ironPercent                :: Double
-      , ironProfessionDistribution :: ProfessionDistribution
-      }
