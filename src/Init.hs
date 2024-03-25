@@ -15,7 +15,7 @@ import           Data.Bifunctor  (second)
 import qualified Data.Map        as Map
 import           Numeric.Natural
 import           Percent         (Percent (getValue), PercentValidationError,
-                                  mkPercentFrom, oneHundredPercent)
+                                  mkPercent, oneHundredPercent)
 import           Structs         (Citizen (..), Profession, State (..))
 import           Utils           (invertEitherList)
 
@@ -53,7 +53,7 @@ newtype ProfessionDistribution
 
 mkProfessionDistribution :: Map.Map Profession Double -> Either ValidationError ProfessionDistribution
 mkProfessionDistribution rawMap = join $ do
-    parsedList :: [(Profession, Percent)] <- convertPercentError $ invertEitherList (map (second $ mkPercentFrom id) (Map.toList rawMap))
+    parsedList :: [(Profession, Percent)] <- convertPercentError $ invertEitherList (map (second mkPercent) (Map.toList rawMap))
     return $ case sumOfFractions of
         1.0 -> Right $ ProfessionDistribution (Map.fromList parsedList)
         _   -> Left InvalidProfessionDistribution
@@ -73,9 +73,9 @@ mkStartingConfiguration :: StartingSize -> GoldPercent -> SilverPercent -> IronP
 
 mkStartingConfiguration startingSize' goldPercent' silverPercent' ironPercent' professionDistributionMap' =
      join $ do
-        gold <- convertPercentError $ mkPercentFrom getGoldPercent goldPercent'
-        silver <- convertPercentError $ mkPercentFrom getSilverPercent silverPercent'
-        iron <- convertPercentError $ mkPercentFrom getIronPercent ironPercent'
+        gold <- convertPercentError $ mkPercent (getGoldPercent goldPercent')
+        silver <- convertPercentError $ mkPercent (getSilverPercent silverPercent')
+        iron <- convertPercentError $ mkPercent (getIronPercent ironPercent')
         professionDistribution <- mkProfessionDistribution professionDistributionMap'
         return $ internalMake startingSize' gold silver iron professionDistribution
     where internalMake :: StartingSize -> Percent -> Percent -> Percent -> ProfessionDistribution -> Either ValidationError StartingConfiguration

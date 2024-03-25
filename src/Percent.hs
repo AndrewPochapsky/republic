@@ -1,7 +1,7 @@
 module Percent
     ( Percent (getValue)
     , PercentValidationError
-    , mkPercentFrom
+    , mkPercent
     , oneHundredPercent
     ) where
 
@@ -27,10 +27,7 @@ instance Num Percent where
 instance Eq Percent where
     (Percent x) == (Percent y) = x == y
 
-mkPercentFrom :: (a -> Double) -> a -> Either PercentValidationError Percent
-mkPercentFrom toDouble value = validateDoubleAsPercent $ toDouble value
-
-validateDoubleAsPercent :: Double -> Either PercentValidationError Percent
-validateDoubleAsPercent value
+mkPercent :: Double -> Either PercentValidationError Percent
+mkPercent value
  | value >= 0 && value <= 1.0 = Right (Percent value)
  | otherwise = Left InvalidPercentage
