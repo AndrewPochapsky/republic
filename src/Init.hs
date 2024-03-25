@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MonoLocalBinds   #-}
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Init
     ( GoldPercent (..)
     , IronPercent (..)
@@ -11,72 +11,52 @@ module Init
     ) where
 
 import           Control.Monad   (join)
+import           Data.Bifunctor  (second)
 import qualified Data.Map        as Map
 import           Numeric.Natural
+import           Percent         (Percent (getValue), PercentValidationError,
+                                  mkPercentFrom, oneHundredPercent)
 import           Structs         (Citizen (..), Profession, State (..))
+import           Utils           (invertEitherList)
 
 data ValidationError
   = InvalidProfessionDistribution
   | InvalidPercentage
   | PercentagesMustAddToOne
+  | PercentValidationError PercentValidationError
   deriving (Show)
 
-class ExpectedPercent a where validate :: a -> Either ValidationError Percent
-
-instance ExpectedPercent GoldPercent where
-    validate (GoldPercent x)
-     | x > 0 && x < 1.0 = Right (Percent x)
-     | otherwise = Left InvalidPercentage
-
-instance ExpectedPercent SilverPercent where
-    validate (SilverPercent x)
-     | x > 0 && x < 1.0 = Right (Percent x)
-     | otherwise = Left InvalidPercentage
-
-instance ExpectedPercent IronPercent where
-    validate (IronPercent x)
-     | x > 0 && x < 1.0 = Right (Percent x)
-     | otherwise = Left InvalidPercentage
+convertPercentError :: Either PercentValidationError a -> Either ValidationError a
+convertPercentError eitherValue = case eitherValue of
+    Left err      -> Left (PercentValidationError err)
+    (Right value) -> Right value
 
 newtype StartingSize
   = StartingSize Natural
   deriving (Show)
 
 newtype GoldPercent
-  = GoldPercent Double
+  = GoldPercent { getGoldPercent :: Double }
   deriving (Show)
 
 newtype SilverPercent
-  = SilverPercent Double
+  = SilverPercent { getSilverPercent :: Double }
   deriving (Show)
 
 newtype IronPercent
-  = IronPercent Double
+  = IronPercent { getIronPercent :: Double }
   deriving (Show)
 
 newtype ProfessionDistribution
-  = ProfessionDistribution { getMap :: Map.Map Profession Double }
+  = ProfessionDistribution { getMap :: Map.Map Profession Percent }
   deriving (Show)
-
-newtype Percent
-  = Percent Double
-  deriving (Show)
-
-instance Num Percent where
-    (Percent x) + (Percent y) = Percent (x + y)
-    (Percent x) * (Percent y) = Percent (x * y)
-    abs (Percent x) = Percent (abs x)
-    negate (Percent x) = Percent (negate x)
-    fromInteger x = Percent (fromInteger x)
-    signum _ = Percent 1
-
-instance Eq Percent where
-    (Percent x) == (Percent y) = x == y
 
 mkProfessionDistribution :: Map.Map Profession Double -> Either ValidationError ProfessionDistribution
-mkProfessionDistribution rawMap
-    | sumOfFractions == 1.0 = Right (ProfessionDistribution rawMap)
-    | otherwise = Left InvalidProfessionDistribution
+mkProfessionDistribution rawMap = join $ do
+    parsedList :: [(Profession, Percent)] <- convertPercentError $ invertEitherList (map (second $ mkPercentFrom id) (Map.toList rawMap))
+    return $ case sumOfFractions of
+        1.0 -> Right $ ProfessionDistribution (Map.fromList parsedList)
+        _   -> Left InvalidProfessionDistribution
     where sumOfFractions = sum (Map.elems rawMap)
 
 data StartingConfiguration
@@ -89,21 +69,20 @@ data StartingConfiguration
       }
   deriving (Show)
 
-mkStartingConfiguration :: (ExpectedPercent GoldPercent, ExpectedPercent SilverPercent, ExpectedPercent IronPercent) =>
-    StartingSize -> GoldPercent -> SilverPercent -> IronPercent -> Map.Map Profession Double -> Either ValidationError StartingConfiguration
+mkStartingConfiguration :: StartingSize -> GoldPercent -> SilverPercent -> IronPercent -> Map.Map Profession Double -> Either ValidationError StartingConfiguration
 
 mkStartingConfiguration startingSize' goldPercent' silverPercent' ironPercent' professionDistributionMap' =
      join $ do
-        gold <- validate goldPercent'
-        silver <- validate silverPercent'
-        iron <- validate ironPercent'
+        gold <- convertPercentError $ mkPercentFrom getGoldPercent goldPercent'
+        silver <- convertPercentError $ mkPercentFrom getSilverPercent silverPercent'
+        iron <- convertPercentError $ mkPercentFrom getIronPercent ironPercent'
         professionDistribution <- mkProfessionDistribution professionDistributionMap'
         return $ internalMake startingSize' gold silver iron professionDistribution
     where internalMake :: StartingSize -> Percent -> Percent -> Percent -> ProfessionDistribution -> Either ValidationError StartingConfiguration
-          internalMake _startingSize _goldPercent _silverPercent _ironPercent _professionDistribution
-            | percentSum == Percent 1.0 = Right StartingConfiguration {startingSize = _startingSize, goldPercent = _goldPercent, silverPercent = _silverPercent, ironPercent = _ironPercent, ironProfessionDistribution = _professionDistribution}
+          internalMake startingSize goldPercent silverPercent ironPercent ironProfessionDistribution
+            | percentSum == oneHundredPercent = Right StartingConfiguration { startingSize, goldPercent, silverPercent, ironPercent, ironProfessionDistribution }
             | otherwise = Left PercentagesMustAddToOne
-              where percentSum = _goldPercent + _silverPercent + _ironPercent
+              where percentSum = goldPercent + silverPercent + ironPercent
 
 generateStartingState :: StartingConfiguration -> State
 generateStartingState startingConfiguration =
@@ -117,8 +96,8 @@ generateStartingState startingConfiguration =
     where startingSize' = startingSize startingConfiguration
 
 generateCitizens :: (() -> Citizen) -> StartingSize -> Percent -> [Citizen]
-generateCitizens initFunction (StartingSize startingSize') (Percent percent) = replicate numberOfCitizens (initFunction ())
-    where numberOfCitizens = round (fromIntegral startingSize' * percent)
+generateCitizens initFunction (StartingSize startingSize') percent = replicate numberOfCitizens (initFunction ())
+    where numberOfCitizens = round (fromIntegral startingSize' * getValue percent)
 
 generateGoldCitizens :: StartingSize -> Percent -> [Citizen]
 generateGoldCitizens  = generateCitizens (const Gold { age = 0 })
@@ -127,8 +106,10 @@ generateSilverCitizens :: StartingSize -> Percent -> [Citizen]
 generateSilverCitizens  = generateCitizens (const Silver { age = 0 })
 
 generateIronCitizens :: StartingConfiguration -> [Citizen]
-generateIronCitizens startingConfiguration = concatMap (generateIronCitizensWithProfession (startingSize startingConfiguration) (ironPercent startingConfiguration)) professionPairs
+generateIronCitizens startingConfiguration =
+    concatMap (generateIronCitizensWithProfession (startingSize startingConfiguration) (ironPercent startingConfiguration)) professionPairs
     where professionPairs = Map.toList (getMap $ ironProfessionDistribution startingConfiguration)
 
-generateIronCitizensWithProfession :: StartingSize -> Percent -> (Profession, Double) -> [Citizen]
-generateIronCitizensWithProfession startingSize' (Percent ironPercent') (professionValue, professionProportion) = generateCitizens (const Iron { age = 0, profession = professionValue }) startingSize' (Percent (ironPercent' * professionProportion))
+generateIronCitizensWithProfession :: StartingSize -> Percent -> (Profession, Percent) -> [Citizen]
+generateIronCitizensWithProfession startingSize' ironPercent' (professionValue, professionProportion) =
+    generateCitizens (const Iron { age = 0, profession = professionValue }) startingSize' (ironPercent' * professionProportion)
