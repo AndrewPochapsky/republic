@@ -11,13 +11,12 @@ module Init
     ) where
 
 import           Control.Monad   (join)
-import           Data.Bifunctor  (second)
 import qualified Data.Map        as Map
 import           Numeric.Natural
-import           Percent         (Percent (getValue), PercentValidationError,
+import           Percent         (DistributionMap (getMap), Percent (getValue),
+                                  PercentValidationError, mkDistributionMap,
                                   mkPercent, oneHundredPercent)
 import           Structs         (Citizen (..), Profession, State (..))
-import           Utils           (invertEitherList)
 
 data ValidationError
   = InvalidProfessionDistribution
@@ -47,17 +46,7 @@ newtype IronPercent
   = IronPercent { getIronPercent :: Double }
   deriving (Show)
 
-newtype ProfessionDistribution
-  = ProfessionDistribution { getMap :: Map.Map Profession Percent }
-  deriving (Show)
-
-mkProfessionDistribution :: Map.Map Profession Double -> Either ValidationError ProfessionDistribution
-mkProfessionDistribution rawMap = join $ do
-    parsedList :: [(Profession, Percent)] <- convertPercentError $ invertEitherList (map (second mkPercent) (Map.toList rawMap))
-    return $ case sumOfFractions of
-        1.0 -> Right $ ProfessionDistribution (Map.fromList parsedList)
-        _   -> Left InvalidProfessionDistribution
-    where sumOfFractions = sum (Map.elems rawMap)
+type ProfessionDistribution = DistributionMap Profession
 
 data StartingConfiguration
   = StartingConfiguration
@@ -76,7 +65,7 @@ mkStartingConfiguration startingSize' goldPercent' silverPercent' ironPercent' p
         gold <- convertPercentError $ mkPercent (getGoldPercent goldPercent')
         silver <- convertPercentError $ mkPercent (getSilverPercent silverPercent')
         iron <- convertPercentError $ mkPercent (getIronPercent ironPercent')
-        professionDistribution <- mkProfessionDistribution professionDistributionMap'
+        professionDistribution <- convertPercentError $ mkDistributionMap professionDistributionMap'
         return $ internalMake startingSize' gold silver iron professionDistribution
     where internalMake :: StartingSize -> Percent -> Percent -> Percent -> ProfessionDistribution -> Either ValidationError StartingConfiguration
           internalMake startingSize goldPercent silverPercent ironPercent ironProfessionDistribution
@@ -95,15 +84,15 @@ generateStartingState startingConfiguration =
     }
     where startingSize' = startingSize startingConfiguration
 
-generateCitizens :: (() -> Citizen) -> StartingSize -> Percent -> [Citizen]
-generateCitizens initFunction (StartingSize startingSize') percent = replicate numberOfCitizens (initFunction ())
+generateCitizens :: Citizen -> StartingSize -> Percent -> [Citizen]
+generateCitizens citizen (StartingSize startingSize') percent = replicate numberOfCitizens citizen
     where numberOfCitizens = round (fromIntegral startingSize' * getValue percent)
 
 generateGoldCitizens :: StartingSize -> Percent -> [Citizen]
-generateGoldCitizens  = generateCitizens (const Gold { age = 0 })
+generateGoldCitizens  = generateCitizens Gold { age = 0 }
 
 generateSilverCitizens :: StartingSize -> Percent -> [Citizen]
-generateSilverCitizens  = generateCitizens (const Silver { age = 0 })
+generateSilverCitizens  = generateCitizens Silver { age = 0 }
 
 generateIronCitizens :: StartingConfiguration -> [Citizen]
 generateIronCitizens startingConfiguration =
@@ -111,5 +100,5 @@ generateIronCitizens startingConfiguration =
     where professionPairs = Map.toList (getMap $ ironProfessionDistribution startingConfiguration)
 
 generateIronCitizensWithProfession :: StartingSize -> Percent -> (Profession, Percent) -> [Citizen]
-generateIronCitizensWithProfession startingSize' ironPercent' (professionValue, professionProportion) =
-    generateCitizens (const Iron { age = 0, profession = professionValue }) startingSize' (ironPercent' * professionProportion)
+generateIronCitizensWithProfession startingSize' ironPercent' (profession, professionPercent) =
+    generateCitizens Iron { age = 0, profession } startingSize' (ironPercent' * professionPercent)
