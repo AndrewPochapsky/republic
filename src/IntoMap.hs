@@ -9,3 +9,6 @@ class IntoMap m k v
 
 instance IntoMap (Map.Map k v) k v
     where intoMap = id
+
+instance (Ord k) => IntoMap [(k, v)] k v
+    where intoMap = Map.fromList

@@ -43,17 +43,19 @@ instance IntoMap (ExhaustiveDistributionMap k) k Percent
 instance ExhaustiveMapClass (ExhaustiveDistributionMap k) k Percent where
     lookup key m = ExhaustiveMap.lookup key (getExhaustiveMap m)
 
-mkDistributionMap :: (Ord k) => Map.Map k Double -> Either DistributionMapError (DistributionMap k)
-mkDistributionMap rawMap = join $ do
+mkDistributionMap :: (Ord k, IntoMap m k Double) => m -> Either DistributionMapError (DistributionMap k)
+mkDistributionMap intoMapThing = join $ do
     parsedList <- convertPercentError $ invertEitherList (map (second mkPercent) (Map.toList rawMap))
     return $ case sumOfFractions of
         1.0 -> Right $ DistributionMap (Map.fromList parsedList)
         _   -> Left InvalidDistributionMap
-    where sumOfFractions = sum (Map.elems rawMap)
+    where
+        rawMap = intoMap intoMapThing
+        sumOfFractions = sum (Map.elems rawMap)
 
-mkExhaustiveDistributionMap :: (Ord k, Bounded k, Enum k) => Map.Map k Double -> Either DistributionMapError (ExhaustiveDistributionMap k)
-mkExhaustiveDistributionMap rawMap = do
-    distributionMap <- mkDistributionMap rawMap
+mkExhaustiveDistributionMap :: forall m k. (IntoMap m k Double, Ord k, Bounded k, Enum k) => m -> Either DistributionMapError (ExhaustiveDistributionMap k)
+mkExhaustiveDistributionMap intoMapThing = do
+    distributionMap :: DistributionMap k <- mkDistributionMap intoMapThing
     exhaustiveMap <- convertExhaustiveMapError $ mkExhaustiveMap distributionMap
     return $ ExhaustiveDistributionMap exhaustiveMap
 

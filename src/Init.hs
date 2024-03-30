@@ -61,9 +61,9 @@ mkStartingConfiguration :: StartingSize -> GoldPercent -> SilverPercent -> IronP
 
 mkStartingConfiguration startingSize (GoldPercent goldPercent) (SilverPercent silverPercent) (IronPercent ironPercent) professionDistributionMap' =
      do
-        populationDMap <- convertDistributionMapError $ mkExhaustiveDistributionMap $ Map.fromList [(GoldType, goldPercent), (SilverType, silverPercent), (IronType, ironPercent)]
+        populationDMap <- convertDistributionMapError $ mkExhaustiveDistributionMap [(GoldType, goldPercent), (SilverType, silverPercent), (IronType, ironPercent)]
         ironProfessionDistribution <- convertDistributionMapError $ mkDistributionMap professionDistributionMap'
-        return $ StartingConfiguration {startingSize, populationDMap, ironProfessionDistribution}
+        return $ StartingConfiguration { startingSize, populationDMap, ironProfessionDistribution }
 
 generateStartingState :: StartingConfiguration -> State
 generateStartingState startingConfiguration =
