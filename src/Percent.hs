@@ -1,16 +1,9 @@
 module Percent
-    ( DistributionMap (getMap)
-    , Percent (getValue)
+    ( Percent (getValue)
     , PercentValidationError
-    , mkDistributionMap
     , mkPercent
     , oneHundredPercent
     ) where
-
-import           Control.Monad  (join)
-import           Data.Bifunctor (second)
-import qualified Data.Map       as Map
-import           Utils          (invertEitherList)
 
 data PercentValidationError
   = InvalidPercentage
@@ -20,18 +13,6 @@ data PercentValidationError
 newtype Percent
   = Percent { getValue :: Double }
   deriving (Show)
-
-newtype DistributionMap k
-  = DistributionMap { getMap :: Map.Map k Percent }
-  deriving (Show)
-
-mkDistributionMap :: (Ord k) => Map.Map k Double -> Either PercentValidationError (DistributionMap k)
-mkDistributionMap rawMap = join $ do
-    parsedList <-  invertEitherList (map (second mkPercent) (Map.toList rawMap))
-    return $ case sumOfFractions of
-        1.0 -> Right $ DistributionMap (Map.fromList parsedList)
-        _   -> Left InvalidDistributionMap
-    where sumOfFractions = sum (Map.elems rawMap)
 
 oneHundredPercent :: Percent
 oneHundredPercent = Percent 1.0

@@ -22,6 +22,12 @@ data Citizen
       }
   deriving (Show)
 
+data CitizenType
+  = GoldType
+  | SilverType
+  | IronType
+  deriving (Enum, Show)
+
 data State
   = State
       { citizens :: [Citizen]

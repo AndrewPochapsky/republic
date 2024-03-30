@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns      #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 module Init
     ( GoldPercent (..)
     , IronPercent (..)
@@ -12,9 +10,11 @@ module Init
 
 import           Control.Monad   (join)
 import qualified Data.Map        as Map
+import           DistributionMap (DistributionMap, DistributionMapError,
+                                  mkDistributionMap)
+import qualified DistributionMap (toList)
 import           Numeric.Natural
-import           Percent         (DistributionMap (getMap), Percent (getValue),
-                                  PercentValidationError, mkDistributionMap,
+import           Percent         (Percent (getValue), PercentValidationError,
                                   mkPercent, oneHundredPercent)
 import           Structs         (Citizen (..), Profession, State (..))
 
@@ -23,11 +23,17 @@ data ValidationError
   | InvalidPercentage
   | PercentagesMustAddToOne
   | PercentValidationError PercentValidationError
+  | DistributionMapError DistributionMapError
   deriving (Show)
 
 convertPercentError :: Either PercentValidationError a -> Either ValidationError a
 convertPercentError eitherValue = case eitherValue of
     Left err      -> Left (PercentValidationError err)
+    (Right value) -> Right value
+
+convertDistributionMapError :: Either DistributionMapError a -> Either ValidationError a
+convertDistributionMapError eitherValue = case eitherValue of
+    Left err      -> Left (DistributionMapError err)
     (Right value) -> Right value
 
 newtype StartingSize
@@ -46,7 +52,7 @@ newtype IronPercent
   = IronPercent { getIronPercent :: Double }
   deriving (Show)
 
-type ProfessionDistribution = DistributionMap Profession
+type ProfessionDistribution = DistributionMap.DistributionMap Profession
 
 data StartingConfiguration
   = StartingConfiguration
@@ -65,7 +71,7 @@ mkStartingConfiguration startingSize' goldPercent' silverPercent' ironPercent' p
         gold <- convertPercentError $ mkPercent (getGoldPercent goldPercent')
         silver <- convertPercentError $ mkPercent (getSilverPercent silverPercent')
         iron <- convertPercentError $ mkPercent (getIronPercent ironPercent')
-        professionDistribution <- convertPercentError $ mkDistributionMap professionDistributionMap'
+        professionDistribution <- convertDistributionMapError $ mkDistributionMap professionDistributionMap'
         return $ internalMake startingSize' gold silver iron professionDistribution
     where internalMake :: StartingSize -> Percent -> Percent -> Percent -> ProfessionDistribution -> Either ValidationError StartingConfiguration
           internalMake startingSize goldPercent silverPercent ironPercent ironProfessionDistribution
@@ -97,7 +103,7 @@ generateSilverCitizens  = generateCitizens Silver { age = 0 }
 generateIronCitizens :: StartingConfiguration -> [Citizen]
 generateIronCitizens startingConfiguration =
     concatMap (generateIronCitizensWithProfession (startingSize startingConfiguration) (ironPercent startingConfiguration)) professionPairs
-    where professionPairs = Map.toList (getMap $ ironProfessionDistribution startingConfiguration)
+    where professionPairs = DistributionMap.toList $ ironProfessionDistribution startingConfiguration
 
 generateIronCitizensWithProfession :: StartingSize -> Percent -> (Profession, Percent) -> [Citizen]
 generateIronCitizensWithProfession startingSize' ironPercent' (profession, professionPercent) =
