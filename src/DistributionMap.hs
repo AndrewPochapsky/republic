@@ -40,8 +40,8 @@ newtype ExhaustiveDistributionMap k
 instance IntoMap (ExhaustiveDistributionMap k) k Percent
     where intoMap eMap = intoMap $ getExhaustiveMap eMap
 
-instance ExhaustiveMapClass (ExhaustiveDistributionMap k) where
-    lookup = ExhaustiveMap.lookup
+instance ExhaustiveMapClass (ExhaustiveDistributionMap k) k Percent where
+    lookup key m = ExhaustiveMap.lookup key (getExhaustiveMap m)
 
 mkDistributionMap :: (Ord k) => Map.Map k Double -> Either DistributionMapError (DistributionMap k)
 mkDistributionMap rawMap = join $ do

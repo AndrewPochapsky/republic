@@ -26,7 +26,7 @@ data CitizenType
   = GoldType
   | SilverType
   | IronType
-  deriving (Enum, Show)
+  deriving (Bounded, Enum, Eq, Ord, Show)
 
 data State
   = State

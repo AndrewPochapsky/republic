@@ -2,7 +2,6 @@ module Percent
     ( Percent (getValue)
     , PercentValidationError
     , mkPercent
-    , oneHundredPercent
     ) where
 
 data PercentValidationError
@@ -13,9 +12,6 @@ data PercentValidationError
 newtype Percent
   = Percent { getValue :: Double }
   deriving (Show)
-
-oneHundredPercent :: Percent
-oneHundredPercent = Percent 1.0
 
 instance Num Percent where
     (Percent x) + (Percent y) = Percent (x + y)

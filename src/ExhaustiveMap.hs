@@ -8,7 +8,7 @@ import qualified Data.Map as Map
 import           IntoMap  (IntoMap (intoMap))
 import           Utils    (expectJust)
 
-class ExhaustiveMapClass m
+class ExhaustiveMapClass m k v
     where lookup :: (Ord k, IntoMap m k v) => k -> m -> v
 
 instance IntoMap (ExhaustiveMap k v) k v
@@ -18,7 +18,7 @@ newtype ExhaustiveMap k v
   = ExhaustiveMap { getMap :: Map.Map k v }
   deriving (Show)
 
-instance ExhaustiveMapClass (ExhaustiveMap k v) where
+instance ExhaustiveMapClass (ExhaustiveMap k v) k v where
     lookup key eMap = expectJust $ Map.lookup key $ intoMap eMap
 
 data ExhaustiveMapError
@@ -28,7 +28,7 @@ data ExhaustiveMapError
 mkExhaustiveMap :: (IntoMap m k v, Ord k, Bounded k, Enum k) => m -> Either ExhaustiveMapError (ExhaustiveMap k v)
 
 mkExhaustiveMap intoMapType = if all (`Map.member` rawMap) allOptions
-    then Right (ExhaustiveMap rawMap)
+    then Right $ ExhaustiveMap rawMap
     else Left NotExhaustive
     where allOptions = [minBound .. maxBound]
           rawMap = intoMap intoMapType
