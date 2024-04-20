@@ -18,9 +18,14 @@ myStartingConfiguration = case configEither of
 startingState = generateStartingState myStartingConfiguration
 
 advance :: State -> State
-advance state = State { citizens = map
-    (\citizen -> citizen { age = age citizen + 1 })
-    (citizens state), time = time state + 1}
+advance state = State {
+    citizens = map
+        (\citizen -> citizen { age = age citizen + 1 })
+        (citizens state),
+    time = time state + 1,
+    professionProductionMap = professionProductionMap state,
+    resources = resources state
+    }
 
 main :: IO()
 main = print $ advance startingState

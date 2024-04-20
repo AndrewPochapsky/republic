@@ -13,11 +13,18 @@ import           DistributionMap (DistributionMap, DistributionMapError,
                                   ExhaustiveDistributionMap, mkDistributionMap,
                                   mkExhaustiveDistributionMap)
 import qualified DistributionMap (toList)
-import           ExhaustiveMap   (ExhaustiveMapClass (lookup))
+import           ExhaustiveMap   (ExhaustiveMap, ExhaustiveMapClass (lookup),
+                                  initExhaustiveMap, mkExhaustiveMap)
 import           Numeric.Natural
 import           Percent         (Percent (getValue))
-import           Structs         (Citizen (..), CitizenType (..), Profession,
-                                  State (..))
+import           ResourceGraph   (ResourceType (..))
+import           Structs         (Citizen (..), CitizenType (..),
+                                  Profession (..), State (..))
+import           Utils           (expectRight)
+
+
+baseProfessionProductionMap :: ExhaustiveMap Profession (ResourceType, Int)
+baseProfessionProductionMap = expectRight $ mkExhaustiveMap [(Farmer, (Wheat, 1 :: Int)), (Baker, (Bread, 1)), (Miner, (ResourceGraph.Iron, 1)), (Blacksmith, (Tool, 1))]
 
 data ValidationError
   = InvalidProfessionDistribution
@@ -72,7 +79,9 @@ generateStartingState startingConfiguration =
             generateGoldCitizens startingSize' (ExhaustiveMap.lookup GoldType (populationDMap startingConfiguration))
              ++ generateSilverCitizens startingSize' (ExhaustiveMap.lookup SilverType (populationDMap startingConfiguration))
              ++ generateIronCitizens startingConfiguration,
-        time = 0
+        time = 0,
+        professionProductionMap = baseProfessionProductionMap,
+        resources = initExhaustiveMap 0
     }
     where startingSize' = startingSize startingConfiguration
 
@@ -93,4 +102,4 @@ generateIronCitizens startingConfiguration =
 
 generateIronCitizensWithProfession :: StartingSize -> Percent -> (Profession, Percent) -> [Citizen]
 generateIronCitizensWithProfession startingSize' ironPercent' (profession, professionPercent) =
-    generateCitizens Iron { age = 0, profession } startingSize' (ironPercent' * professionPercent)
+    generateCitizens Structs.Iron { age = 0, profession } startingSize' (ironPercent' * professionPercent)

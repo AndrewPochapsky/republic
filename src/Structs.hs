@@ -1,13 +1,15 @@
 module Structs
     ( module Structs
     ) where
+import           ExhaustiveMap (ExhaustiveMap)
+import           ResourceGraph (ResourceType)
 
 data Profession
   = Farmer
   | Baker
   | Miner
   | Blacksmith
-  deriving (Enum, Eq, Ord, Show)
+  deriving (Bounded, Enum, Eq, Ord, Show)
 
 data Citizen
   = Gold
@@ -28,9 +30,12 @@ data CitizenType
   | IronType
   deriving (Bounded, Enum, Eq, Ord, Show)
 
+type ProductionInfo = (ResourceType, Int)
 data State
   = State
-      { citizens :: [Citizen]
-      , time     :: Int
+      { citizens                :: [Citizen]
+      , time                    :: Int
+      , resources               :: ExhaustiveMap ResourceType Int
+      , professionProductionMap :: ExhaustiveMap Profession ProductionInfo
       }
   deriving (Show)

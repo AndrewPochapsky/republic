@@ -2,6 +2,7 @@ module ExhaustiveMap
     ( ExhaustiveMap
     , ExhaustiveMapClass (lookup)
     , ExhaustiveMapError
+    , initExhaustiveMap
     , mkExhaustiveMap
     ) where
 import qualified Data.Map as Map
@@ -32,3 +33,7 @@ mkExhaustiveMap intoMapType = if all (`Map.member` rawMap) allOptions
     else Left NotExhaustive
     where allOptions = [minBound .. maxBound]
           rawMap = intoMap intoMapType
+
+initExhaustiveMap :: (Bounded k, Enum k, Ord k) => v -> ExhaustiveMap k v
+initExhaustiveMap defaultValue = ExhaustiveMap $ Map.fromList (map (, defaultValue) allOptions)
+    where allOptions = [minBound..maxBound]

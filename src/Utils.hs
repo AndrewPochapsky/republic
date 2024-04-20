@@ -1,5 +1,6 @@
 module Utils
     ( expectJust
+    , expectRight
     , invertEitherList
     ) where
 
@@ -13,3 +14,7 @@ invertEitherList ((k, eitherVal):rest) = do
 expectJust :: Maybe a -> a
 expectJust (Just value) = value
 expectJust Nothing      = error ""
+
+expectRight :: (Show err) => Either err value -> value
+expectRight (Left e)  = error (show e)
+expectRight (Right v) = v

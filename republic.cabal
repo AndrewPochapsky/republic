@@ -61,12 +61,12 @@ executable republic
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: Structs, Init, Utils, Percent, ExhaustiveMap, IntoMap, DistributionMap
+    other-modules: Structs, Init, Utils, Percent, ExhaustiveMap, IntoMap, DistributionMap, ResourceGraph
 
-    default-extensions: MultiParamTypeClasses, NamedFieldPuns, FlexibleInstances, ScopedTypeVariables, FlexibleContexts
+    default-extensions: MultiParamTypeClasses, NamedFieldPuns, FlexibleInstances, ScopedTypeVariables, FlexibleContexts, TupleSections
 
     -- Other library packages from which modules are imported.
-    build-depends: base ^>=4.17.2.1, containers ^>=0.6.7
+    build-depends: base ^>=4.17.2.1, containers ^>=0.6.7, array
 
     -- Directories containing source files.
     hs-source-dirs:   src
