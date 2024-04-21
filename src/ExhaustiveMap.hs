@@ -35,5 +35,4 @@ mkExhaustiveMap intoMapType = if all (`Map.member` rawMap) allOptions
           rawMap = intoMap intoMapType
 
 initExhaustiveMap :: (Bounded k, Enum k, Ord k) => v -> ExhaustiveMap k v
-initExhaustiveMap defaultValue = ExhaustiveMap $ Map.fromList (map (, defaultValue) allOptions)
-    where allOptions = [minBound..maxBound]
+initExhaustiveMap defaultValue = ExhaustiveMap $ Map.fromList (map (, defaultValue) [minBound..maxBound])
